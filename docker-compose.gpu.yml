@@ -1,0 +1,17 @@
+# GPU override: use with docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+# Requires: nvidia-container-toolkit, NVIDIA drivers
+# Add USE_GPU_ENCODING=true to your .env
+# FORCE_CPU_ENCODING=true: standard Docker ffmpeg lacks NVENC; set false only if you have NVENC-enabled ffmpeg
+
+services:
+  worker:
+    environment:
+      - USE_GPU_ENCODING=true
+      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-true}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

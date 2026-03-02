@@ -32,16 +32,11 @@ const DynamicVideoPlayer: React.FC<DynamicVideoPlayerProps> = ({
 
   return (
     <div
-      className={`relative bg-black rounded-lg overflow-hidden flex items-center justify-center ${className}`}
+      className={`relative bg-black rounded-lg overflow-hidden flex items-center justify-center w-full max-w-full ${className}`}
       style={
         videoDimensions
-          ? {
-            width: videoDimensions.width,
-            height: videoDimensions.height,
-            maxWidth: "100%",
-            maxHeight: "70vh",
-          }
-          : { width: "100%", maxHeight: "70vh" }
+          ? { aspectRatio: `${videoDimensions.width} / ${videoDimensions.height}`, maxHeight: "70vh" }
+          : { maxHeight: "70vh" }
       }
     >
       <video
@@ -52,23 +47,9 @@ const DynamicVideoPlayer: React.FC<DynamicVideoPlayerProps> = ({
         loop={loop}
         poster={poster}
         onLoadedMetadata={handleLoadedMetadata}
-        width={videoDimensions?.width}
-        height={videoDimensions?.height}
-        className="object-contain bg-black w-full h-full"
+        className="object-contain bg-black w-full h-full block"
         tabIndex={0}
         aria-label="Video player"
-        style={
-          videoDimensions
-            ? {
-              width: videoDimensions.width,
-              height: videoDimensions.height,
-              maxWidth: "100%",
-              maxHeight: "70vh",
-              display: "block",
-              margin: "0 auto",
-            }
-            : { width: "100%", maxHeight: "70vh" }
-        }
       >
         <source src={src} type="video/mp4" />
         Your browser does not support the video tag.

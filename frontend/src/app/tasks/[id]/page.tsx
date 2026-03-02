@@ -97,6 +97,7 @@ export default function TaskPage() {
   const [highlightWords, setHighlightWords] = useState("");
   const [exportPreset, setExportPreset] = useState("tiktok");
 
+  const [encodingStatus, setEncodingStatus] = useState<{ encoding: string } | null>(null);
   const [projectFontFamily, setProjectFontFamily] = useState("TikTokSans-Regular");
   const [projectFontSize, setProjectFontSize] = useState("24");
   const [projectFontColor, setProjectFontColor] = useState("#FFFFFF");
@@ -107,6 +108,21 @@ export default function TaskPage() {
   const hasTriggeredAutoRefresh = useRef(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  useEffect(() => {
+    const fetchEncoding = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/system/encoding`);
+        if (res.ok) {
+          const data = await res.json();
+          setEncodingStatus(data);
+        }
+      } catch {
+        // Ignore
+      }
+    };
+    fetchEncoding();
+  }, [apiUrl]);
 
   const buildSupportError = useCallback(
     async (response: Response, fallbackMessage: string) => {
@@ -727,7 +743,7 @@ export default function TaskPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 overflow-x-hidden">
         {task?.status === "processing" || task?.status === "queued" ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] py-16">
             {/* Minimal animated dots */}
@@ -738,9 +754,16 @@ export default function TaskPage() {
             </div>
 
             {/* Status message */}
-            <p className="text-neutral-600 text-sm tracking-wide mb-8">
+            <p className="text-neutral-600 text-sm tracking-wide mb-2">
               {progressMessage || (task.status === "queued" ? "Waiting in queue" : "Processing")}
             </p>
+            {encodingStatus ? (
+              <p className="text-neutral-500 text-xs mb-8">
+                Clip encoding: <Badge variant="outline" className="font-mono text-[10px]">{encodingStatus.encoding.toUpperCase()}</Badge>
+              </p>
+            ) : (
+              <div className="mb-8" />
+            )}
 
             {/* Minimal progress bar */}
             {progress > 0 && (
@@ -813,7 +836,7 @@ export default function TaskPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6">
+          <div className="grid gap-6 min-w-0 w-full">
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -912,17 +935,9 @@ export default function TaskPage() {
             {clips.map((clip) => (
               <Card key={clip.id} className="overflow-hidden">
                 <CardContent className="p-0">
-                  <div className="flex flex-col lg:flex-row">
-                    {/* Video Player */}
-                    <div className="bg-black relative flex-shrink-0 flex items-center justify-center">
-                      <DynamicVideoPlayer
-                        src={`${apiUrl}${clip.video_url}`}
-                        poster="/placeholder-video.jpg"
-                      />
-                    </div>
-
-                    {/* Clip Details */}
-                    <div className="p-6 flex-1">
+                  <div className="flex flex-col">
+                    {/* Clip Details - above video so it's always visible */}
+                    <div className="p-6 border-b">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <label className="flex items-center gap-2 text-xs text-gray-600 mb-2">
@@ -1124,6 +1139,15 @@ export default function TaskPage() {
                           </Button>
                         </div>
                       )}
+                    </div>
+
+                    {/* Video Player - below details */}
+                    <div className="bg-black relative flex items-center justify-center min-h-[240px] overflow-hidden">
+                      <DynamicVideoPlayer
+                        src={`${apiUrl}${clip.video_url}`}
+                        poster="/placeholder-video.jpg"
+                        className="w-full max-w-full"
+                      />
                     </div>
                   </div>
                 </CardContent>

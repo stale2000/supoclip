@@ -25,6 +25,47 @@ from .font_registry import find_font_path
 logger = logging.getLogger(__name__)
 config = Config()
 
+_nvenc_available: Optional[bool] = None
+
+
+def get_encoding_status() -> Dict[str, Any]:
+    """Return current video encoding status for API/frontend display."""
+    nvenc = _is_nvenc_available()
+    use_gpu = config.use_gpu_encoding
+    effective = "gpu" if (use_gpu and nvenc) else "cpu"
+    return {
+        "encoding": effective,
+        "use_gpu_encoding": use_gpu,
+        "nvenc_available": nvenc,
+    }
+
+
+def _is_nvenc_available() -> bool:
+    """Check if ffmpeg has h264_nvenc (NVENC) support. Cached at module load."""
+    global _nvenc_available
+    if _nvenc_available is not None:
+        return _nvenc_available
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["ffmpeg", "-encoders"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        # Encoder list can appear on stdout or stderr depending on ffmpeg version
+        output = (result.stdout or "") + (result.stderr or "")
+        _nvenc_available = "h264_nvenc" in output
+        if not _nvenc_available and config.use_gpu_encoding:
+            logger.warning(
+                "USE_GPU_ENCODING=true but ffmpeg has no h264_nvenc; falling back to CPU encoding"
+            )
+        return _nvenc_available
+    except Exception as e:
+        logger.warning(f"Could not check NVENC availability: {e}")
+        _nvenc_available = False
+        return False
+
 
 class VideoProcessor:
     """Handles video processing operations with optimized settings."""
@@ -48,26 +89,37 @@ class VideoProcessor:
     def get_optimal_encoding_settings(
         self, target_quality: str = "high"
     ) -> Dict[str, Any]:
-        """Get optimal encoding settings for different quality levels."""
+        """Get optimal encoding settings. Uses NVENC (GPU) when USE_GPU_ENCODING=true and available."""
+        # FORCE_CPU_ENCODING bypasses NVENC (use when standard Docker ffmpeg lacks NVENC)
+        use_nvenc = (
+            not config.force_cpu_encoding
+            and config.use_gpu_encoding
+            and _is_nvenc_available()
+        )
+        if use_nvenc:
+            return {
+                "codec": "h264_nvenc",
+                "audio_codec": "aac",
+                "audio_bitrate": "256k",
+                "ffmpeg_params": [
+                    "-preset", "p1",
+                    "-rc", "vbr",
+                    "-cq", "23",
+                    "-b:v", "0",
+                    "-pix_fmt", "yuv420p",
+                    "-movflags", "+faststart",
+                ],
+            }
         settings = {
             "high": {
                 "codec": "libx264",
                 "audio_codec": "aac",
                 "audio_bitrate": "256k",
-                "preset": "slow",
+                "preset": "veryfast",
                 "ffmpeg_params": [
-                    "-crf",
-                    "18",
-                    "-pix_fmt",
-                    "yuv420p",
-                    "-profile:v",
-                    "high",
-                    "-level",
-                    "4.1",
-                    "-movflags",
-                    "+faststart",
-                    "-sws_flags",
-                    "lanczos",
+                    "-crf", "23",
+                    "-pix_fmt", "yuv420p",
+                    "-movflags", "+faststart",
                 ],
             },
             "medium": {
@@ -75,7 +127,7 @@ class VideoProcessor:
                 "audio_codec": "aac",
                 "bitrate": "4000k",
                 "audio_bitrate": "192k",
-                "preset": "fast",
+                "preset": "veryfast",
                 "ffmpeg_params": ["-crf", "23", "-pix_fmt", "yuv420p"],
             },
         }
@@ -1449,6 +1501,79 @@ def create_clips_with_transitions(
 
     logger.info(f"Successfully created {len(enhanced_clips)} clips with transitions")
     return enhanced_clips
+
+
+def _whisper_device() -> str:
+    """Detect best device for Whisper (cuda if available, else cpu)."""
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
+
+
+def get_video_transcript_with_whisper(video_path: Path, model_size: str = "base") -> str:
+    """
+    Get transcript using local Whisper. Returns same format as AssemblyAI for AI analysis.
+    Also caches word-like data for subtitle generation (segment-level).
+    """
+    import whisper
+
+    device = _whisper_device()
+    logger.info(f"Transcribing with Whisper model={model_size} (device={device})")
+
+    model = whisper.load_model(model_size, device=device)
+    result = model.transcribe(str(video_path))
+
+    # Format for AI analysis: [MM:SS - MM:SS] text per segment
+    formatted_lines = []
+    words_data = []
+
+    for seg in result.get("segments", []):
+        start_s = seg.get("start", 0)
+        end_s = seg.get("end", 0)
+        text = (seg.get("text") or "").strip()
+        if not text:
+            continue
+
+        start_ms = int(start_s * 1000)
+        end_ms = int(end_s * 1000)
+        start_ts = format_ms_to_timestamp(start_ms)
+        end_ts = format_ms_to_timestamp(end_ms)
+        formatted_lines.append(f"[{start_ts} - {end_ts}] {text}")
+
+        # Cache segment as "word" for subtitle generation (segment-level timing)
+        words_data.append({
+            "text": text,
+            "start": start_ms,
+            "end": end_ms,
+            "confidence": 1.0,
+        })
+
+    # Save cache for subtitle generation
+    cache_path = video_path.with_suffix(".transcript_cache.json")
+    cache_data = {"words": words_data, "text": result.get("text", "")}
+    try:
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(cache_data, f, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"Failed to save Whisper transcript cache: {e}")
+
+    result_text = "\n".join(formatted_lines)
+    logger.info(f"Whisper transcript: {len(formatted_lines)} segments, {len(result_text)} chars")
+    return result_text
+
+
+def get_video_transcript_by_provider(
+    video_path: Path,
+    provider: str = "assemblyai",
+    speech_model: str = "best",
+    whisper_model: str = "base",
+) -> str:
+    """Get transcript using the specified provider (assemblyai or whisper)."""
+    if provider == "whisper":
+        return get_video_transcript_with_whisper(video_path, model_size=whisper_model)
+    return get_video_transcript(video_path, speech_model=speech_model)
 
 
 # Backward compatibility functions

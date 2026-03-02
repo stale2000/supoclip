@@ -10,7 +10,7 @@ class Config:
         self.anthropic_api_key = self._get_optional_env("ANTHROPIC_API_KEY")
         self.google_api_key = self._get_optional_env("GOOGLE_API_KEY")
 
-        self.whisper_model = os.getenv("WHISPER_MODEL", "base")
+        self.whisper_model = os.getenv("WHISPER_MODEL_SIZE") or os.getenv("WHISPER_MODEL", "base")
         self.llm = self._get_optional_env("LLM") or self._infer_default_llm()
         self.assembly_ai_api_key = os.getenv("ASSEMBLY_AI_API_KEY")
         self.pexels_api_key = os.getenv("PEXELS_API_KEY")
@@ -52,6 +52,8 @@ class Config:
         self.fast_mode_transcript_model = os.getenv(
             "FAST_MODE_TRANSCRIPT_MODEL", "nano"
         )
+        self.use_gpu_encoding = self._get_bool_env("USE_GPU_ENCODING", False)
+        self.force_cpu_encoding = self._get_bool_env("FORCE_CPU_ENCODING", False)
 
     @staticmethod
     def _get_optional_env(name: str):
