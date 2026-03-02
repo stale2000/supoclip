@@ -13,7 +13,7 @@ from ..youtube_utils import (
     get_youtube_video_title,
     get_youtube_video_id,
 )
-from ..video_utils import get_video_transcript, create_clips_with_transitions
+from ..video_utils import get_video_transcript_by_provider, create_clips_with_transitions
 from ..ai import get_most_relevant_parts_by_transcript
 from ..config import Config
 
@@ -55,18 +55,26 @@ class VideoService:
 
     @staticmethod
     async def generate_transcript(
-        video_path: Path, processing_mode: str = "balanced"
+        video_path: Path,
+        processing_mode: str = "balanced",
+        transcript_provider: str = "assemblyai",
     ) -> str:
         """
-        Generate transcript from video using AssemblyAI.
+        Generate transcript from video using AssemblyAI or local Whisper.
         Runs in thread pool to avoid blocking.
         """
-        logger.info(f"Generating transcript for: {video_path}")
+        logger.info(f"Generating transcript for: {video_path} (provider={transcript_provider})")
         speech_model = "best"
         if processing_mode == "fast":
             speech_model = config.fast_mode_transcript_model
 
-        transcript = await run_in_thread(get_video_transcript, video_path, speech_model)
+        transcript = await run_in_thread(
+            get_video_transcript_by_provider,
+            video_path,
+            provider=transcript_provider,
+            speech_model=speech_model,
+            whisper_model=config.whisper_model,
+        )
         logger.info(f"Transcript generated: {len(transcript)} characters")
         return transcript
 
@@ -129,6 +137,7 @@ class VideoService:
         font_color: str = "#FFFFFF",
         caption_template: str = "default",
         processing_mode: str = "fast",
+        transcript_provider: str = "assemblyai",
         cached_transcript: Optional[str] = None,
         cached_analysis_json: Optional[str] = None,
         progress_callback: Optional[Callable[[int, str, str], Awaitable[None]]] = None,
@@ -168,7 +177,9 @@ class VideoService:
             transcript = cached_transcript
             if not transcript:
                 transcript = await VideoService.generate_transcript(
-                    video_path, processing_mode=processing_mode
+                    video_path,
+                    processing_mode=processing_mode,
+                    transcript_provider=transcript_provider,
                 )
 
             # Step 3: AI analysis

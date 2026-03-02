@@ -84,6 +84,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://sp.localhost:3000}
       - FREE_PLAN_TASK_LIMIT=${FREE_PLAN_TASK_LIMIT:-10}
       - PRO_PLAN_TASK_LIMIT=${PRO_PLAN_TASK_LIMIT:-0}
+      - USE_GPU_ENCODING=${USE_GPU_ENCODING:-false}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -138,6 +139,8 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://sp.localhost:3000}
       - FREE_PLAN_TASK_LIMIT=${FREE_PLAN_TASK_LIMIT:-10}
       - PRO_PLAN_TASK_LIMIT=${PRO_PLAN_TASK_LIMIT:-0}
+      - USE_GPU_ENCODING=${USE_GPU_ENCODING:-false}
+      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-false}
     restart: unless-stopped
     depends_on:
       postgres:

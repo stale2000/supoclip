@@ -41,8 +41,10 @@ class TaskService:
         self.config = Config()
 
     @staticmethod
-    def _build_cache_key(url: str, source_type: str, processing_mode: str) -> str:
-        payload = f"{source_type}|{processing_mode}|{url.strip()}"
+    def _build_cache_key(
+        url: str, source_type: str, processing_mode: str, transcript_provider: str = "assemblyai"
+    ) -> str:
+        payload = f"{source_type}|{processing_mode}|{transcript_provider}|{url.strip()}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def _is_stale_queued_task(self, task: Dict[str, Any]) -> bool:
@@ -75,6 +77,7 @@ class TaskService:
         caption_template: str = "default",
         include_broll: bool = False,
         processing_mode: str = "fast",
+        transcript_provider: str = "assemblyai",
     ) -> str:
         """
         Create a new task with associated source.
@@ -126,6 +129,7 @@ class TaskService:
         font_color: str = "#FFFFFF",
         caption_template: str = "default",
         processing_mode: str = "fast",
+        transcript_provider: str = "assemblyai",
         progress_callback: Optional[Callable] = None,
         should_cancel: Optional[Callable] = None,
     ) -> Dict[str, Any]:
@@ -137,7 +141,9 @@ class TaskService:
             logger.info(f"Starting processing for task {task_id}")
             started_at = datetime.utcnow()
             stage_timings: Dict[str, float] = {}
-            cache_key = self._build_cache_key(url, source_type, processing_mode)
+            cache_key = self._build_cache_key(
+                url, source_type, processing_mode, transcript_provider
+            )
 
             cache_entry = await self.cache_repo.get_cache(self.db, cache_key)
             cached_transcript = (
@@ -188,6 +194,7 @@ class TaskService:
                 font_color=font_color,
                 caption_template=caption_template,
                 processing_mode=processing_mode,
+                transcript_provider=transcript_provider,
                 cached_transcript=cached_transcript,
                 cached_analysis_json=cached_analysis_json,
                 progress_callback=update_progress,

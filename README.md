@@ -135,6 +135,10 @@ Open http://localhost:3000 in your browser, create an account, and start clippin
 - Run `docker-compose down -v` to clear volumes
 - Run `docker-compose up -d --build` to rebuild
 
+**Clip creation is slow:**
+- CPU encoding preset is "veryfast" for speed
+- GPU encoding: set `USE_GPU_ENCODING=true` in `.env` when using an NVIDIA GPU. You must also expose the GPU to the worker container (e.g. add `deploy.resources.reservations.devices: - driver: nvidia` under the worker service and use nvidia-container-toolkit)
+
 **Frontend shows database errors:**
 - Wait for PostgreSQL to fully initialize (check logs)
 - The database is automatically created on first run

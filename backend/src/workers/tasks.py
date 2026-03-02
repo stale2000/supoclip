@@ -24,6 +24,7 @@ async def process_video_task(
     font_color: str = "#FFFFFF",
     caption_template: str = "default",
     processing_mode: str = "fast",
+    transcript_provider: str = "assemblyai",
 ) -> Dict[str, Any]:
     """
     Background worker task to process a video.
@@ -76,6 +77,7 @@ async def process_video_task(
                 font_color=font_color,
                 caption_template=caption_template,
                 processing_mode=processing_mode,
+                transcript_provider=transcript_provider,
                 progress_callback=update_progress,
                 should_cancel=should_cancel,
             )

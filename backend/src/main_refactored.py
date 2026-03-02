@@ -201,6 +201,13 @@ async def check_database_health(db: AsyncSession = Depends(get_db)):
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
 
+@app.get("/system/encoding")
+async def encoding_status():
+    """Return video encoding status (GPU vs CPU) for frontend display."""
+    from .video_utils import get_encoding_status
+    return get_encoding_status()
+
+
 @app.get("/health/redis")
 async def check_redis_health():
     """Check Redis connectivity."""

@@ -16,7 +16,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { formatSupportMessage, parseApiError } from "@/lib/api-error";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Youtube, CheckCircle, AlertCircle, Loader2, Palette, Type, Paintbrush, Film, Sparkles, Upload, Monitor } from "lucide-react";
+import { ArrowRight, Youtube, CheckCircle, AlertCircle, Loader2, Palette, Type, Paintbrush, Film, Sparkles, Upload, Monitor, Mic } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import LandingPage from "@/components/landing-page";
 import { isLandingOnlyModeEnabled } from "@/lib/app-flags";
@@ -115,11 +115,13 @@ export default function Home() {
   const [availableTemplates, setAvailableTemplates] = useState<Array<{ id: string, name: string, description: string, animation: string, font_family?: string, font_size?: number, font_color?: string }>>([]);
   const [includeBroll, setIncludeBroll] = useState(false);
   const [brollAvailable, setBrollAvailable] = useState(false);
+  const [useWhisper, setUseWhisper] = useState(false);
 
   // Latest task state
   const [latestTask, setLatestTask] = useState<LatestTask | null>(null);
   const [isLoadingLatest, setIsLoadingLatest] = useState(false);
   const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
+  const [encodingStatus, setEncodingStatus] = useState<{ encoding: string } | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const youtubeThumbnailUrl = sourceType === "youtube" ? getYouTubeThumbnailUrl(url) : null;
 
@@ -271,6 +273,21 @@ export default function Home() {
 
     fetchBillingSummary();
   }, [session?.user?.id, apiUrl]);
+
+  useEffect(() => {
+    const fetchEncodingStatus = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/system/encoding`);
+        if (res.ok) {
+          const data = await res.json();
+          setEncodingStatus(data);
+        }
+      } catch {
+        // Ignore - encoding status is optional
+      }
+    };
+    fetchEncodingStatus();
+  }, [apiUrl]);
 
   // Always treat file input as uncontrolled, and store file in a ref
   const fileRef = useRef<File | null>(null);
@@ -445,7 +462,8 @@ export default function Home() {
           },
           caption_template: captionTemplate,
           include_broll: includeBroll,
-          processing_mode: "fast"
+          processing_mode: "fast",
+          transcript_provider: useWhisper ? "whisper" : "assemblyai"
         }),
       });
 
@@ -635,6 +653,12 @@ export default function Home() {
           </div>
         )}
 
+        {encodingStatus && (
+          <p className="text-sm text-stone-500 mb-8">
+            Clip encoding: <Badge variant="outline" className="font-mono">{encodingStatus.encoding.toUpperCase()}</Badge>
+          </p>
+        )}
+
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
           {/* Left Column — Form */}
@@ -758,6 +782,22 @@ export default function Home() {
                         )}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Local Whisper Transcription */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-stone-50">
+                    <div className="flex items-center gap-3">
+                      <Mic className="w-4 h-4 text-indigo-500" />
+                      <div>
+                        <h3 className="text-sm font-medium text-stone-900">Local Whisper Transcription</h3>
+                        <p className="text-xs text-stone-500">Use local Whisper instead of AssemblyAI (no API key needed)</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={useWhisper}
+                      onCheckedChange={setUseWhisper}
+                      disabled={isLoading}
+                    />
                   </div>
 
                   {/* B-Roll Toggle */}

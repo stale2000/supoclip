@@ -119,6 +119,7 @@ export default function TaskPage() {
   const [highlightWords, setHighlightWords] = useState("");
   const [exportPreset, setExportPreset] = useState("tiktok");
 
+  const [encodingStatus, setEncodingStatus] = useState<{ encoding: string } | null>(null);
   const [projectFontFamily, setProjectFontFamily] = useState("TikTokSans-Regular");
   const [projectFontSize, setProjectFontSize] = useState("24");
   const [projectFontColor, setProjectFontColor] = useState("#FFFFFF");
@@ -133,10 +134,28 @@ export default function TaskPage() {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  const buildSupportError = useCallback(async (response: Response, fallbackMessage: string) => {
-    const parsed = await parseApiError(response, fallbackMessage);
-    return formatSupportMessage(parsed);
-  }, []);
+  useEffect(() => {
+    const fetchEncoding = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/system/encoding`);
+        if (res.ok) {
+          const data = await res.json();
+          setEncodingStatus(data);
+        }
+      } catch {
+        // Ignore
+      }
+    };
+    fetchEncoding();
+  }, [apiUrl]);
+
+  const buildSupportError = useCallback(
+    async (response: Response, fallbackMessage: string) => {
+      const parsed = await parseApiError(response, fallbackMessage);
+      return formatSupportMessage(parsed);
+    },
+    []
+  );
 
   const triggerAutoRefresh = useCallback(() => {
     if (hasTriggeredAutoRefresh.current) return;
@@ -762,7 +781,7 @@ export default function TaskPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 overflow-x-hidden">
         {task?.status === "processing" || task?.status === "queued" ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] py-16">
             {/* Minimal animated dots */}
@@ -776,9 +795,16 @@ export default function TaskPage() {
             </div>
 
             {/* Status message */}
-            <p className="text-neutral-600 text-sm tracking-wide mb-8">
+            <p className="text-neutral-600 text-sm tracking-wide mb-2">
               {progressMessage || (task.status === "queued" ? "Waiting in queue" : "Processing")}
             </p>
+            {encodingStatus ? (
+              <p className="text-neutral-500 text-xs mb-8">
+                Clip encoding: <Badge variant="outline" className="font-mono text-[10px]">{encodingStatus.encoding.toUpperCase()}</Badge>
+              </p>
+            ) : (
+              <div className="mb-8" />
+            )}
 
             {/* Minimal progress bar */}
             {progress > 0 && (
@@ -851,7 +877,7 @@ export default function TaskPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6">
+          <div className="grid gap-6 min-w-0 w-full">
             <Card>
               <CardContent className="px-5 pb-4 space-y-4">
                 <div className="flex items-center justify-between">
