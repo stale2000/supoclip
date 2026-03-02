@@ -277,7 +277,7 @@ export default function Home() {
   useEffect(() => {
     const fetchEncodingStatus = async () => {
       try {
-        const res = await fetch(`${apiUrl}/system/encoding`);
+        const res = await fetch("/api/system/encoding", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setEncodingStatus(data);
@@ -287,7 +287,7 @@ export default function Home() {
       }
     };
     fetchEncodingStatus();
-  }, [apiUrl]);
+  }, []);
 
   // Always treat file input as uncontrolled, and store file in a ref
   const fileRef = useRef<File | null>(null);
@@ -653,11 +653,9 @@ export default function Home() {
           </div>
         )}
 
-        {encodingStatus && (
-          <p className="text-sm text-stone-500 mb-8">
-            Clip encoding: <Badge variant="outline" className="font-mono">{encodingStatus.encoding.toUpperCase()}</Badge>
-          </p>
-        )}
+        <p className="text-sm text-stone-500 mb-8">
+          Clip encoding: <Badge variant="outline" className="font-mono">{(encodingStatus?.encoding ?? "cpu").toUpperCase()}</Badge>
+        </p>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">

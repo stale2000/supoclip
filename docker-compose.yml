@@ -85,6 +85,7 @@ services:
       - FREE_PLAN_TASK_LIMIT=${FREE_PLAN_TASK_LIMIT:-10}
       - PRO_PLAN_TASK_LIMIT=${PRO_PLAN_TASK_LIMIT:-0}
       - USE_GPU_ENCODING=${USE_GPU_ENCODING:-false}
+      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-true}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -140,7 +141,7 @@ services:
       - FREE_PLAN_TASK_LIMIT=${FREE_PLAN_TASK_LIMIT:-10}
       - PRO_PLAN_TASK_LIMIT=${PRO_PLAN_TASK_LIMIT:-0}
       - USE_GPU_ENCODING=${USE_GPU_ENCODING:-false}
-      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-false}
+      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-true}
     restart: unless-stopped
     depends_on:
       postgres:

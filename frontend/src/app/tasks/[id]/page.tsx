@@ -137,7 +137,7 @@ export default function TaskPage() {
   useEffect(() => {
     const fetchEncoding = async () => {
       try {
-        const res = await fetch(`${apiUrl}/system/encoding`);
+        const res = await fetch("/api/system/encoding", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setEncodingStatus(data);
@@ -147,7 +147,7 @@ export default function TaskPage() {
       }
     };
     fetchEncoding();
-  }, [apiUrl]);
+  }, []);
 
   const buildSupportError = useCallback(
     async (response: Response, fallbackMessage: string) => {
@@ -798,13 +798,9 @@ export default function TaskPage() {
             <p className="text-neutral-600 text-sm tracking-wide mb-2">
               {progressMessage || (task.status === "queued" ? "Waiting in queue" : "Processing")}
             </p>
-            {encodingStatus ? (
-              <p className="text-neutral-500 text-xs mb-8">
-                Clip encoding: <Badge variant="outline" className="font-mono text-[10px]">{encodingStatus.encoding.toUpperCase()}</Badge>
-              </p>
-            ) : (
-              <div className="mb-8" />
-            )}
+            <p className="text-neutral-500 text-xs mb-8">
+              Video encoding: <Badge variant="outline" className="font-mono text-[10px]">{encodingStatus ? encodingStatus.encoding.toUpperCase() : "CPU"}</Badge>
+            </p>
 
             {/* Minimal progress bar */}
             {progress > 0 && (
