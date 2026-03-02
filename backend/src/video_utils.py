@@ -29,13 +29,19 @@ _nvenc_available: Optional[bool] = None
 
 
 def get_encoding_status() -> Dict[str, Any]:
-    """Return current video encoding status for API/frontend display."""
+    """Return actual video encoding status for API/frontend display.
+    Matches get_optimal_encoding_settings logic: respects force_cpu_encoding.
+    """
     nvenc = _is_nvenc_available()
     use_gpu = config.use_gpu_encoding
-    effective = "gpu" if (use_gpu and nvenc) else "cpu"
+    force_cpu = config.force_cpu_encoding
+    # Same logic as get_optimal_encoding_settings
+    use_nvenc = not force_cpu and use_gpu and nvenc
+    effective = "gpu" if use_nvenc else "cpu"
     return {
         "encoding": effective,
         "use_gpu_encoding": use_gpu,
+        "force_cpu_encoding": force_cpu,
         "nvenc_available": nvenc,
     }
 

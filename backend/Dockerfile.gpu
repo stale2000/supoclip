@@ -1,0 +1,44 @@
+# GPU Dockerfile: uses ffmpeg with NVENC for hardware-accelerated video encoding
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+# Stage 1: Get ffmpeg with NVENC support (jrottenberg has nvidia variant)
+FROM jrottenberg/ffmpeg:7.1-nvidia2204-edge AS ffmpeg-nvenc
+
+# Stage 2: Main application
+FROM python:3.11-slim
+
+# Install system dependencies (curl for yt-dlp, etc.) - skip apt ffmpeg, we'll use NVENC build
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy ffmpeg with NVENC from stage 1 (jrottenberg uses --prefix=/opt/ffmpeg)
+COPY --from=ffmpeg-nvenc /opt/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
+COPY --from=ffmpeg-nvenc /opt/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
+
+# Install uv package manager
+RUN pip install uv
+
+WORKDIR /app
+
+# Copy pyproject.toml and uv.lock for dependency installation
+COPY pyproject.toml uv.lock* ./
+
+# Create virtual environment and install dependencies using uv sync
+RUN uv venv .venv && uv sync
+
+# Force update yt-dlp
+RUN uv pip install --upgrade --force-reinstall yt-dlp
+RUN uv pip install --upgrade --force-reinstall "yt-dlp[default]"
+
+# Copy source code
+COPY src/ ./src/
+COPY fonts/ ./fonts/
+COPY transitions/ ./transitions/
+
+# Create necessary directories
+RUN mkdir -p /app/uploads /app/clips /app/logs /tmp
+
+EXPOSE 8000
+
+CMD [".venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

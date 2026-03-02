@@ -238,7 +238,7 @@ export default function Home() {
   useEffect(() => {
     const fetchEncodingStatus = async () => {
       try {
-        const res = await fetch(`${apiUrl}/system/encoding`);
+        const res = await fetch("/api/system/encoding", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setEncodingStatus(data);
@@ -248,7 +248,7 @@ export default function Home() {
       }
     };
     fetchEncodingStatus();
-  }, [apiUrl]);
+  }, []);
 
   // Always treat file input as uncontrolled, and store file in a ref
   const fileRef = useRef<File | null>(null);
@@ -624,11 +624,9 @@ export default function Home() {
             <p className="text-gray-600">
               Submit a YouTube URL or upload a video for automated clip generation with customizable fonts
             </p>
-            {encodingStatus && (
-              <p className="text-sm text-gray-500 mt-2">
-                Clip encoding: <Badge variant="outline" className="font-mono">{encodingStatus.encoding.toUpperCase()}</Badge>
-              </p>
-            )}
+            <p className="text-sm text-gray-500 mt-2">
+              Video encoding: <Badge variant="outline" className="font-mono">{encodingStatus ? encodingStatus.encoding.toUpperCase() : "CPU"}</Badge>
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
