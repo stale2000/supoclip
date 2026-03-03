@@ -134,23 +134,12 @@ export default function Home() {
       const response = await fetch("/api/fonts", {
         cache: "no-store",
       });
-      let data: { fonts?: FontOption[]; error?: string };
-      try {
-        data = await response.json();
-      } catch {
-        data = { fonts: [] };
-      }
-      const fonts: FontOption[] = data.fonts ?? [];
-
       if (!response.ok) {
-        setFontLoadError(data.error ?? `Failed to load fonts (${response.status})`);
-        setAvailableFonts(fonts);
-        return;
+        throw new Error(`Failed to load fonts (${response.status})`);
       }
 
-      if (data.error && fonts.length === 0) {
-        setFontLoadError(data.error);
-      }
+      const data = await response.json();
+      const fonts: FontOption[] = data.fonts || [];
       setAvailableFonts(fonts);
 
       const fontFaceStyles = fonts.map((font) => {
