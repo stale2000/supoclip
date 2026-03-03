@@ -853,6 +853,54 @@ export default function Home() {
                       />
                     </div>
                   )}
+
+                  {/* Local transcription (Whisper) */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-stone-50">
+                    <div className="flex items-center gap-3">
+                      <Mic className="w-4 h-4 text-amber-500" />
+                      <div>
+                        <h3 className="text-sm font-medium text-stone-900">Local transcription</h3>
+                        <p className="text-xs text-stone-500">Use Whisper locally instead of AssemblyAI (no API cost)</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={useWhisper}
+                      onCheckedChange={setUseWhisper}
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  {/* Output format */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-stone-50">
+                    <div className="flex items-center gap-3">
+                      <Monitor className="w-4 h-4 text-blue-500" />
+                      <div>
+                        <h3 className="text-sm font-medium text-stone-900">Wide format</h3>
+                        <p className="text-xs text-stone-500">Keep original aspect ratio instead of 9:16 vertical</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={outputFormat === "original"}
+                      onCheckedChange={(checked) => setOutputFormat(checked ? "original" : "vertical")}
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  {/* Add subtitles */}
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-stone-50">
+                    <div className="flex items-center gap-3">
+                      <Type className="w-4 h-4 text-emerald-500" />
+                      <div>
+                        <h3 className="text-sm font-medium text-stone-900">Add subtitles</h3>
+                        <p className="text-xs text-stone-500">Burn captions onto clips (disable for faster processing)</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={addSubtitles}
+                      onCheckedChange={setAddSubtitles}
+                      disabled={isLoading}
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
