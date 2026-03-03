@@ -20,6 +20,16 @@ docker-compose down               # Stop all services
 
 Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379)
 
+### Docker with GPU (NVENC)
+
+Requires: NVIDIA GPU, [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html), `USE_GPU_ENCODING=true` in `.env`.
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+
+Uses `Dockerfile.gpu` and `jrottenberg/ffmpeg` with NVENC for hardware-accelerated encoding.
+
 ### Backend (local)
 
 Uses `uv` (not pip/poetry). Requires Python 3.11+, ffmpeg, running PostgreSQL and Redis.
