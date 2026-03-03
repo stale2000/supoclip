@@ -78,6 +78,8 @@ export default function Home() {
   const [includeBroll, setIncludeBroll] = useState(false);
   const [brollAvailable, setBrollAvailable] = useState(false);
   const [useWhisper, setUseWhisper] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<"vertical" | "original">("vertical");
+  const [addSubtitles, setAddSubtitles] = useState(true);
 
   // Latest task state
   const [latestTask, setLatestTask] = useState<LatestTask | null>(null);
@@ -419,7 +421,9 @@ export default function Home() {
           caption_template: captionTemplate,
           include_broll: includeBroll,
           processing_mode: "fast",
-          transcript_provider: useWhisper ? "whisper" : "assemblyai"
+          transcript_provider: useWhisper ? "whisper" : "assemblyai",
+          output_format: outputFormat,
+          add_subtitles: addSubtitles
         }),
       });
 
@@ -730,6 +734,39 @@ export default function Home() {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Output Format */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black">Output Format</label>
+              <Select value={outputFormat} onValueChange={(v) => setOutputFormat(v as "vertical" | "original")} disabled={isLoading}>
+                <SelectTrigger className="w-full h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vertical">Vertical (9:16) — TikTok/Reels/Shorts</SelectItem>
+                  <SelectItem value="original">Original — Keep source size (faster, no face crop)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                {outputFormat === "original" ? "Skips face detection and resize; outputs at source resolution. Faster encoding." : "Face-centered crop, 1080×1920. Best for short-form platforms."}
+              </p>
+            </div>
+
+            {/* Skip Subtitles */}
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center gap-3">
+                <Type className="w-5 h-5 text-amber-500" />
+                <div>
+                  <h3 className="text-sm font-medium text-black">Skip subtitles</h3>
+                  <p className="text-xs text-gray-500">No burned-in captions. With original format, uses stream copy (fastest).</p>
+                </div>
+              </div>
+              <Switch
+                checked={!addSubtitles}
+                onCheckedChange={(v) => setAddSubtitles(!v)}
+                disabled={isLoading}
+              />
             </div>
 
             {/* Local Whisper Transcription */}

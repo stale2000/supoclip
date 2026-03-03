@@ -121,6 +121,12 @@ async def create_task(request: Request, db: AsyncSession = Depends(get_db)):
     transcript_provider = data.get("transcript_provider", "assemblyai")
     if transcript_provider not in {"assemblyai", "whisper"}:
         transcript_provider = "assemblyai"
+    output_format = data.get("output_format", "vertical")
+    if output_format not in {"vertical", "original"}:
+        output_format = "vertical"
+    add_subtitles = data.get("add_subtitles", True)
+    if not isinstance(add_subtitles, bool):
+        add_subtitles = True
 
     if not raw_source or not raw_source.get("url"):
         raise HTTPException(status_code=400, detail="Source URL is required")
@@ -163,6 +169,8 @@ async def create_task(request: Request, db: AsyncSession = Depends(get_db)):
             caption_template,
             processing_mode,
             transcript_provider,
+            output_format,
+            add_subtitles,
         )
 
         # Save source metadata for resume/retries in environments without sources.url column
@@ -176,6 +184,8 @@ async def create_task(request: Request, db: AsyncSession = Depends(get_db)):
                     "url": raw_source["url"],
                     "source_type": source_type,
                     "transcript_provider": transcript_provider,
+                    "output_format": output_format,
+                    "add_subtitles": add_subtitles,
                 }),
                 ex=60 * 60 * 24 * 7,
             )
@@ -716,6 +726,8 @@ async def resume_task(
         source_url = task.get("source_url")
         source_type = task.get("source_type")
         transcript_provider = "assemblyai"
+        output_format = "vertical"
+        add_subtitles = True
 
         redis_client = redis.Redis(
             host=config.redis_host, port=config.redis_port, decode_responses=True
@@ -729,6 +741,8 @@ async def resume_task(
                 if not source_type:
                     source_type = parsed.get("source_type")
                 transcript_provider = parsed.get("transcript_provider", transcript_provider)
+                output_format = parsed.get("output_format", output_format)
+                add_subtitles = parsed.get("add_subtitles", add_subtitles)
         finally:
             await redis_client.close()
 
@@ -766,6 +780,8 @@ async def resume_task(
             task.get("caption_template") or "default",
             processing_mode,
             transcript_provider,
+            output_format,
+            add_subtitles,
         )
 
         return {"message": "Task resumed", "job_id": job_id}

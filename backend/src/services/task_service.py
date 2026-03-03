@@ -130,6 +130,8 @@ class TaskService:
         caption_template: str = "default",
         processing_mode: str = "fast",
         transcript_provider: str = "assemblyai",
+        output_format: str = "vertical",
+        add_subtitles: bool = True,
         progress_callback: Optional[Callable] = None,
         should_cancel: Optional[Callable] = None,
     ) -> Dict[str, Any]:
@@ -195,6 +197,8 @@ class TaskService:
                 caption_template=caption_template,
                 processing_mode=processing_mode,
                 transcript_provider=transcript_provider,
+                output_format=output_format,
+                add_subtitles=add_subtitles,
                 cached_transcript=cached_transcript,
                 cached_analysis_json=cached_analysis_json,
                 progress_callback=update_progress,
@@ -455,6 +459,8 @@ class TaskService:
             font_size,
             font_color,
             caption_template,
+            output_format="vertical",
+            add_subtitles=True,
         )
 
         await self.clip_repo.delete_clips_by_task(self.db, task_id)
