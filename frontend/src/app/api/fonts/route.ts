@@ -5,39 +5,47 @@ import { auth } from "@/lib/auth";
 import { buildBackendAuthHeaders } from "@/lib/backend-auth";
 
 export async function GET() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const apiUrl =
-    process.env.BACKEND_INTERNAL_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8000";
-  const normalizedApiUrl = apiUrl.replace(/\/$/, "");
-  const backendAuthHeaders = buildBackendAuthHeaders(session.user.id);
+    const apiUrl =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8000";
+    const normalizedApiUrl = apiUrl.replace(/\/$/, "");
+    const backendAuthHeaders = buildBackendAuthHeaders(session.user.id);
 
-  let upstream = await fetch(`${normalizedApiUrl}/fonts`, {
-    headers: {
-      ...backendAuthHeaders,
-    },
-    cache: "no-store",
-  });
-
-  if (upstream.status === 404) {
-    upstream = await fetch(`${normalizedApiUrl}/api/fonts`, {
+    let upstream = await fetch(`${normalizedApiUrl}/fonts`, {
       headers: {
         ...backendAuthHeaders,
       },
       cache: "no-store",
     });
-  }
 
-  const responseText = await upstream.text();
-  return new NextResponse(responseText, {
-    status: upstream.status,
-    headers: {
-      "Content-Type": upstream.headers.get("content-type") || "application/json",
-    },
-  });
+    if (upstream.status === 404) {
+      upstream = await fetch(`${normalizedApiUrl}/api/fonts`, {
+        headers: {
+          ...backendAuthHeaders,
+        },
+        cache: "no-store",
+      });
+    }
+
+    const responseText = await upstream.text();
+    return new NextResponse(responseText, {
+      status: upstream.status,
+      headers: {
+        "Content-Type": upstream.headers.get("content-type") || "application/json",
+      },
+    });
+  } catch (err) {
+    // Auth (DB) or backend unreachable: return empty fonts so page still loads
+    return NextResponse.json(
+      { fonts: [], error: "Fonts service unavailable. Check backend and database." },
+      { status: 200 }
+    );
+  }
 }

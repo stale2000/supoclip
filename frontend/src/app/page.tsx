@@ -126,6 +126,7 @@ export default function Home() {
   const [encodingStatus, setEncodingStatus] = useState<{ encoding: string } | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const youtubeThumbnailUrl = sourceType === "youtube" ? getYouTubeThumbnailUrl(url) : null;
+  const hexColorPattern = "^#[0-9A-Fa-f]{6}$";
 
   const refreshFonts = useCallback(async () => {
     try {
@@ -133,12 +134,23 @@ export default function Home() {
       const response = await fetch("/api/fonts", {
         cache: "no-store",
       });
+      let data: { fonts?: FontOption[]; error?: string };
+      try {
+        data = await response.json();
+      } catch {
+        data = { fonts: [] };
+      }
+      const fonts: FontOption[] = data.fonts ?? [];
+
       if (!response.ok) {
-        throw new Error(`Failed to load fonts (${response.status})`);
+        setFontLoadError(data.error ?? `Failed to load fonts (${response.status})`);
+        setAvailableFonts(fonts);
+        return;
       }
 
-      const data = await response.json();
-      const fonts: FontOption[] = data.fonts || [];
+      if (data.error && fonts.length === 0) {
+        setFontLoadError(data.error);
+      }
       setAvailableFonts(fonts);
 
       const fontFaceStyles = fonts.map((font) => {
@@ -980,7 +992,7 @@ export default function Home() {
                               disabled={isLoading}
                               placeholder="#FFFFFF"
                               className="flex-1 h-8 text-xs"
-                              pattern="^#[0-9A-Fa-f]{6}$"
+                              pattern={hexColorPattern}
                             />
                           </div>
                           <div className="flex gap-1.5 mt-1">
