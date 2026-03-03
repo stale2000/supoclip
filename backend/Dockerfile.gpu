@@ -2,22 +2,24 @@
 # Use with: docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 # Stage 1: Get ffmpeg with NVENC support (jrottenberg has nvidia variant)
-FROM jrottenberg/ffmpeg:7.1-nvidia2204-edge AS ffmpeg-nvenc
+FROM jrottenberg/ffmpeg:8-nvidia AS ffmpeg-nvenc
 
-# Stage 2: Main application
-FROM python:3.11-slim
+# Stage 2: Main application - use jrottenberg as base so ffmpeg + all deps work
+FROM jrottenberg/ffmpeg:8-nvidia
 
-# Install system dependencies (curl for yt-dlp, etc.) - skip apt ffmpeg, we'll use NVENC build
+# Install Python 3.12+ and system deps (jrottenberg is Ubuntu 24.04)
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-venv \
+    python3-pip \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3 /usr/bin/python
 
-# Copy ffmpeg with NVENC from stage 1 (jrottenberg uses --prefix=/opt/ffmpeg)
-COPY --from=ffmpeg-nvenc /opt/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
-COPY --from=ffmpeg-nvenc /opt/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
-
-# Install uv package manager
-RUN pip install uv
+# Install uv package manager (--break-system-packages ok in container)
+RUN python3 -m pip install --no-cache-dir --break-system-packages uv
 
 WORKDIR /app
 
@@ -41,4 +43,7 @@ RUN mkdir -p /app/uploads /app/clips /app/logs /tmp
 
 EXPOSE 8000
 
-CMD [".venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# jrottenberg image uses ffmpeg as ENTRYPOINT; clear it so CMD runs uvicorn
+ENTRYPOINT []
+
+CMD [".venv/bin/uvicorn", "src.main_refactored:app", "--host", "0.0.0.0", "--port", "8000"]

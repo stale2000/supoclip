@@ -3,6 +3,12 @@ Utility functions for video-related operations.
 Optimized for MoviePy v2, AssemblyAI integration, and high-quality output.
 """
 
+# Use system ffmpeg so NVENC works when available; MoviePy defaults to bundled imageio-ffmpeg
+# which lacks NVENC, causing "Unrecognized option 'cq'" when we pass NVENC params.
+import os
+if "FFMPEG_BINARY" not in os.environ:
+    os.environ["FFMPEG_BINARY"] = "auto-detect"
+
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
 import os
@@ -103,13 +109,14 @@ class VideoProcessor:
             and _is_nvenc_available()
         )
         if use_nvenc:
+            # Minimal NVENC params for compatibility across FFmpeg/MoviePy versions.
+            # -cq with -b:v 0 enables constant-quality VBR; avoid -rc:v (parsing issues).
             return {
                 "codec": "h264_nvenc",
                 "audio_codec": "aac",
                 "audio_bitrate": "256k",
                 "ffmpeg_params": [
-                    "-preset", "p1",
-                    "-rc", "vbr",
+                    "-preset", "p4",
                     "-cq", "23",
                     "-b:v", "0",
                     "-pix_fmt", "yuv420p",
