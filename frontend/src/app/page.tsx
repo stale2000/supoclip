@@ -88,6 +88,7 @@ export default function Home() {
   const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
   const [encodingStatus, setEncodingStatus] = useState<{ encoding: string } | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const hexColorPattern = "^#[0-9A-Fa-f]{6}$";
 
   const refreshFonts = useCallback(async () => {
     try {
@@ -95,12 +96,23 @@ export default function Home() {
       const response = await fetch("/api/fonts", {
         cache: "no-store",
       });
+      let data: { fonts?: FontOption[]; error?: string };
+      try {
+        data = await response.json();
+      } catch {
+        data = { fonts: [] };
+      }
+      const fonts: FontOption[] = data.fonts ?? [];
+
       if (!response.ok) {
-        throw new Error(`Failed to load fonts (${response.status})`);
+        setFontLoadError(data.error ?? `Failed to load fonts (${response.status})`);
+        setAvailableFonts(fonts);
+        return;
       }
 
-      const data = await response.json();
-      const fonts: FontOption[] = data.fonts || [];
+      if (data.error && fonts.length === 0) {
+        setFontLoadError(data.error);
+      }
       setAvailableFonts(fonts);
 
       const fontFaceStyles = fonts.map((font) => {
@@ -619,17 +631,19 @@ export default function Home() {
           </div>
         )}
 
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-black mb-2">
-              Video Processing
-            </h2>
-            <p className="text-gray-600">
-              Submit a YouTube URL or upload a video for automated clip generation with customizable fonts
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Video encoding: <Badge variant="outline" className="font-mono">{encodingStatus ? encodingStatus.encoding.toUpperCase() : "CPU"}</Badge>
-            </p>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-6">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-black mb-2">
+                Video Processing
+              </h2>
+              <p className="text-gray-600">
+                Submit a YouTube URL or upload a video for automated clip generation with customizable fonts
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Video encoding: <Badge variant="outline" className="font-mono">{encodingStatus ? encodingStatus.encoding.toUpperCase() : "CPU"}</Badge>
+              </p>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Source Type Tabs */}
@@ -889,7 +903,7 @@ export default function Home() {
                               disabled={isLoading}
                               placeholder="#FFFFFF"
                               className="flex-1 h-8 text-xs"
-                              pattern="^#[0-9A-Fa-f]{6}$"
+                              pattern={hexColorPattern}
                             />
                           </div>
                           <div className="flex gap-1.5 mt-1">
