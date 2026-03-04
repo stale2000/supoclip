@@ -1,0 +1,9 @@
+#!/bin/sh
+# Runs docker compose. Use GPU when USE_GPU=true in .env
+set -e
+[ -f .env ] && . .env 2>/dev/null || true
+if [ "$USE_GPU" = "true" ]; then
+  exec docker compose -f docker-compose.yml -f docker-compose.gpu.yml "$@"
+else
+  exec docker compose "$@"
+fi
