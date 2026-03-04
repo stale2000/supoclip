@@ -1,0 +1,7 @@
+# CPU-only override: removes GPU device so containers start without nvidia-container-toolkit
+# Run: docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
+
+services:
+  worker:
+    deploy:
+      resources: {}
