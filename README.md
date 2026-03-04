@@ -87,14 +87,15 @@ BETTER_AUTH_SECRET=change_this_in_production
 
 ### 2. Start the Services
 
+Set `USE_GPU=true` or `USE_GPU=false` in `.env`, then:
+
 ```bash
-docker compose up -d --build
+./up up -d --build
 ```
 
-For GPU (NVIDIA + nvidia-container-toolkit):
-```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
-```
+(PowerShell: `.\up.ps1 up -d --build`)
+
+Or run docker compose directly for CPU: `docker compose up -d --build`
 
 This starts:
 - **Frontend**: http://localhost:3000
@@ -142,7 +143,7 @@ Open http://localhost:3000 in your browser, create an account, and start clippin
 
 **Clip creation is slow:**
 - CPU encoding preset is "veryfast" for speed
-- GPU encoding: `docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build`. Requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+- GPU: set `USE_GPU=true` in `.env` and run `./up up -d --build`. Requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
 **Frontend shows database errors:**
 - Wait for PostgreSQL to fully initialize (check logs)
