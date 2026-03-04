@@ -11,25 +11,21 @@ SupoClip is an open-source alternative to OpusClip — an AI-powered video clipp
 ### Docker (recommended)
 
 ```bash
-./start.sh                        # One command: auto-detects GPU, starts all services
-# or
-docker compose up -d --build      # Direct compose (CPU mode unless override present)
+docker compose up -d --build      # CPU mode
 docker compose logs -f backend    # Debug backend
 docker compose logs -f worker     # Debug video processing
 docker compose down               # Stop all services
 ```
 
-Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379). `./start.sh` auto-detects NVIDIA GPU and enables NVENC when available.
+Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379)
 
-### Docker (single command)
+### Docker with GPU (NVENC)
+
+Requires: NVIDIA GPU, [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
 ```bash
-./start.sh
-# or
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 ```
-
-`./start.sh` auto-detects NVIDIA GPU and enables NVENC hardware encoding when available. Set `USE_GPU=true` or `USE_GPU=false` in `.env` to override. GPU requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
 
 ### Backend (local)
 
