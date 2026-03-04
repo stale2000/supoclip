@@ -2,6 +2,9 @@
 # Run: docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
 
 services:
+  backend:
+    deploy:
+      resources: {}
   worker:
     deploy:
       resources: {}
