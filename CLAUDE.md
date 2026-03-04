@@ -10,20 +10,15 @@ SupoClip is an open-source alternative to OpusClip — an AI-powered video clipp
 
 ### Docker (recommended)
 
-Set `USE_GPU=true` or `USE_GPU=false` in `.env`:
-
 ```bash
-docker compose up -d --build
-docker compose logs -f
-docker compose down
+docker-compose up -d              # Start all 5 services
+docker-compose up -d --build      # Rebuild after changes
+docker-compose logs -f backend    # Debug backend
+docker-compose logs -f worker     # Debug video processing
+docker-compose down               # Stop all services
 ```
 
-CPU-only systems (no nvidia-container-toolkit):
-```bash
-docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
-```
-
-Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379). GPU requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379)
 
 ### Backend (local)
 

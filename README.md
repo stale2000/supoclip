@@ -87,13 +87,9 @@ BETTER_AUTH_SECRET=change_this_in_production
 
 ### 2. Start the Services
 
-Set `USE_GPU=true` or `USE_GPU=false` in `.env`, then:
-
 ```bash
-docker compose up -d --build
+docker-compose up -d
 ```
-
-CPU-only (no NVIDIA GPU): `docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build`
 
 This starts:
 - **Frontend**: http://localhost:3000
