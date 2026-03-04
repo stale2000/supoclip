@@ -55,7 +55,13 @@ class Config:
             "FAST_MODE_TRANSCRIPT_MODEL", "nano"
         )
         self.use_gpu_encoding = self._get_bool_env("USE_GPU_ENCODING", False)
-        self.force_cpu_encoding = self._get_bool_env("FORCE_CPU_ENCODING", False)
+        # Default: when USE_GPU_ENCODING=false, force CPU. Override with FORCE_CPU_ENCODING.
+        fc = os.getenv("FORCE_CPU_ENCODING")
+        self.force_cpu_encoding = (
+            self._get_bool_env("FORCE_CPU_ENCODING", False)
+            if (fc is not None and fc.strip() != "")
+            else (not self.use_gpu_encoding)
+        )
 
     @staticmethod
     def _get_optional_env(name: str):

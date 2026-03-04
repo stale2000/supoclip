@@ -137,7 +137,7 @@ Open http://localhost:3000 in your browser, create an account, and start clippin
 
 **Clip creation is slow:**
 - CPU encoding preset is "veryfast" for speed
-- GPU encoding: set `USE_GPU_ENCODING=true` in `.env` when using an NVIDIA GPU. You must also expose the GPU to the worker container (e.g. add `deploy.resources.reservations.devices: - driver: nvidia` under the worker service and use nvidia-container-toolkit)
+- GPU: set `USE_GPU=true` in `.env`. Requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
 **Frontend shows database errors:**
 - Wait for PostgreSQL to fully initialize (check logs)

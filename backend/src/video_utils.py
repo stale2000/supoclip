@@ -53,7 +53,8 @@ def get_encoding_status() -> Dict[str, Any]:
 
 
 def _is_nvenc_available() -> bool:
-    """Check if ffmpeg has h264_nvenc (NVENC) support. Cached at module load."""
+    """Check if ffmpeg has h264_nvenc. Cached at module load.
+    Encoder check only; actual encode may fail in some Docker/WSL2 setups."""
     global _nvenc_available
     if _nvenc_available is not None:
         return _nvenc_available
@@ -65,7 +66,6 @@ def _is_nvenc_available() -> bool:
             text=True,
             timeout=5,
         )
-        # Encoder list can appear on stdout or stderr depending on ffmpeg version
         output = (result.stdout or "") + (result.stderr or "")
         _nvenc_available = "h264_nvenc" in output
         if not _nvenc_available and config.use_gpu_encoding:

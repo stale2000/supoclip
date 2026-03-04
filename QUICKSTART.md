@@ -58,7 +58,7 @@ LLM=openai:gpt-4
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
 
-## Manual Docker Commands
+## Docker Commands
 
 If you prefer to use Docker commands directly:
 

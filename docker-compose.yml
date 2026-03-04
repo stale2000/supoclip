@@ -50,6 +50,13 @@ services:
         - linux/amd64  # Force x86_64 for MediaPipe compatibility
     container_name: supoclip-backend
     platform: linux/amd64
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     command: [".venv/bin/uvicorn", "src.main_refactored:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
@@ -84,8 +91,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://sp.localhost:3000}
       - FREE_PLAN_TASK_LIMIT=${FREE_PLAN_TASK_LIMIT:-10}
       - PRO_PLAN_TASK_LIMIT=${PRO_PLAN_TASK_LIMIT:-0}
-      - USE_GPU_ENCODING=${USE_GPU_ENCODING:-false}
-      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-true}
+      - USE_GPU_ENCODING=${USE_GPU:-false}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -99,7 +105,8 @@ services:
       retries: 5
       start_period: 60s
 
-  # Worker process for background video processing
+  # Worker process for background video processing. Set USE_GPU=true in .env for NVENC.
+  # CPU-only systems: docker compose -f docker-compose.yml -f docker-compose.cpu.yml up
   worker:
     build:
       context: ./backend
@@ -108,6 +115,13 @@ services:
         - linux/amd64
     container_name: supoclip-worker
     platform: linux/amd64
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     command: [".venv/bin/arq", "src.workers.tasks.WorkerSettings"]
     volumes:
       - ./backend/src:/app/src
@@ -140,8 +154,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://sp.localhost:3000}
       - FREE_PLAN_TASK_LIMIT=${FREE_PLAN_TASK_LIMIT:-10}
       - PRO_PLAN_TASK_LIMIT=${PRO_PLAN_TASK_LIMIT:-0}
-      - USE_GPU_ENCODING=${USE_GPU_ENCODING:-false}
-      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-true}
+      - USE_GPU_ENCODING=${USE_GPU:-false}
     restart: unless-stopped
     depends_on:
       postgres:

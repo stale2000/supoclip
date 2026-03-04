@@ -6,7 +6,7 @@ This repository is a monorepo with three apps:
 - `frontend/`: main Next.js app (`src/app`, `src/components`, `src/lib`, `prisma/`).
 - `waitlist/`: separate Next.js marketing/waitlist app.
 
-Infra and bootstrap files live at the root: `docker-compose.yml`, `init.sql`, `.env.example`, and `start.sh`.
+Infra and bootstrap files live at the root: `docker-compose.yml`, `docker-compose.cpu.yml` (CPU-only override), `init.sql`, `.env.example`.
 
 ## Build, Test, and Development Commands
 Use Docker for full-stack development:
