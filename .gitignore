@@ -1,8 +1,9 @@
 .env.local
+.env
+docker-compose.override.yml
 .DS_Store
 __pycache__
 *.egg-info
 logs/
 temp/
-.env
 *.m4a

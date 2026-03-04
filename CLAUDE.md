@@ -11,24 +11,25 @@ SupoClip is an open-source alternative to OpusClip — an AI-powered video clipp
 ### Docker (recommended)
 
 ```bash
-docker-compose up -d              # Start all 5 services
-docker-compose up -d --build      # Rebuild after changes
-docker-compose logs -f backend    # Debug backend
-docker-compose logs -f worker     # Debug video processing
-docker-compose down               # Stop all services
+./start.sh                        # One command: auto-detects GPU, starts all services
+# or
+docker compose up -d --build      # Direct compose (CPU mode unless override present)
+docker compose logs -f backend    # Debug backend
+docker compose logs -f worker     # Debug video processing
+docker compose down               # Stop all services
 ```
 
-Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379)
+Services: Frontend (:3000), Backend API (:8000, docs at /docs), Worker (ARQ), PostgreSQL (:5432), Redis (:6379). `./start.sh` auto-detects NVIDIA GPU and enables NVENC when available.
 
-### Docker with GPU (NVENC)
-
-Requires: NVIDIA GPU, [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html), `USE_GPU_ENCODING=true` in `.env`.
+### Docker (single command)
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+./start.sh
+# or
+docker compose up -d --build
 ```
 
-Uses `Dockerfile.gpu` and `jrottenberg/ffmpeg` with NVENC for hardware-accelerated encoding.
+`./start.sh` auto-detects NVIDIA GPU and enables NVENC hardware encoding when available. Set `USE_GPU=true` or `USE_GPU=false` in `.env` to override. GPU requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
 
 ### Backend (local)
 
