@@ -1559,36 +1559,45 @@ def create_clips_with_transitions(
     return enhanced_clips
 
 
-def _whisper_device() -> str:
-    """Detect best device for Whisper (cuda if available, else cpu)."""
+def _faster_whisper_device_and_compute() -> tuple[str, str]:
+    """Return (device, compute_type) for faster-whisper."""
     try:
-        import torch
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    except ImportError:
-        return "cpu"
+        import ctranslate2
+
+        if ctranslate2.get_cuda_device_count() > 0:
+            return "cuda", "float16"
+    except Exception:
+        pass
+    return "cpu", "int8"
 
 
 def get_video_transcript_with_whisper(video_path: Path, model_size: str = "base") -> str:
     """
-    Get transcript using local Whisper. Returns same format as AssemblyAI for AI analysis.
-    Also caches word-like data for subtitle generation (segment-level).
+    Get transcript using faster-whisper (CTranslate2). Returns same format as AssemblyAI for AI analysis.
+    Also caches word-like data for subtitle generation (word-level when available, else segment-level).
     """
-    import whisper
+    from faster_whisper import WhisperModel
 
-    device = _whisper_device()
-    logger.info(f"Transcribing with Whisper model={model_size} (device={device})")
+    device, compute_type = _faster_whisper_device_and_compute()
+    logger.info(
+        f"Transcribing with faster-whisper model={model_size} (device={device}, compute_type={compute_type})"
+    )
 
-    model = whisper.load_model(model_size, device=device)
-    result = model.transcribe(str(video_path))
+    model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    segments, info = model.transcribe(
+        str(video_path), beam_size=5, word_timestamps=True
+    )
+    segments = list(segments)
 
     # Format for AI analysis: [MM:SS - MM:SS] text per segment
     formatted_lines = []
     words_data = []
+    full_text_parts = []
 
-    for seg in result.get("segments", []):
-        start_s = seg.get("start", 0)
-        end_s = seg.get("end", 0)
-        text = (seg.get("text") or "").strip()
+    for seg in segments:
+        start_s = seg.start
+        end_s = seg.end
+        text = (seg.text or "").strip()
         if not text:
             continue
 
@@ -1597,26 +1606,46 @@ def get_video_transcript_with_whisper(video_path: Path, model_size: str = "base"
         start_ts = format_ms_to_timestamp(start_ms)
         end_ts = format_ms_to_timestamp(end_ms)
         formatted_lines.append(f"[{start_ts} - {end_ts}] {text}")
+        full_text_parts.append(text)
 
-        # Cache segment as "word" for subtitle generation (segment-level timing)
-        words_data.append({
-            "text": text,
-            "start": start_ms,
-            "end": end_ms,
-            "confidence": 1.0,
-        })
+        if seg.words:
+            # Word-level cache for subtitle generation
+            for w in seg.words:
+                word_text = (w.word or "").strip()
+                if not word_text:
+                    continue
+                prob = getattr(w, "probability", None)
+                confidence = float(prob) if prob is not None else 1.0
+                words_data.append({
+                    "text": word_text,
+                    "start": int(w.start * 1000),
+                    "end": int(w.end * 1000),
+                    "confidence": confidence,
+                })
+        else:
+            # Segment-level fallback
+            words_data.append({
+                "text": text,
+                "start": start_ms,
+                "end": end_ms,
+                "confidence": 1.0,
+            })
+
+    full_text = " ".join(full_text_parts)
 
     # Save cache for subtitle generation
     cache_path = video_path.with_suffix(".transcript_cache.json")
-    cache_data = {"words": words_data, "text": result.get("text", "")}
+    cache_data = {"words": words_data, "text": full_text}
     try:
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(cache_data, f, ensure_ascii=False)
     except Exception as e:
-        logger.warning(f"Failed to save Whisper transcript cache: {e}")
+        logger.warning(f"Failed to save faster-whisper transcript cache: {e}")
 
     result_text = "\n".join(formatted_lines)
-    logger.info(f"Whisper transcript: {len(formatted_lines)} segments, {len(result_text)} chars")
+    logger.info(
+        f"faster-whisper transcript: {len(formatted_lines)} segments, {len(result_text)} chars"
+    )
     return result_text
 
 
