@@ -1569,23 +1569,50 @@ def _faster_whisper_device_and_compute() -> tuple[str, str]:
     return "cpu", "int8"
 
 
+def _run_faster_whisper_transcribe(
+    video_path: Path, model_size: str, device: str, compute_type: str
+) -> list:
+    """Load model and transcribe; returns list of segments."""
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    segments, _ = model.transcribe(
+        str(video_path), beam_size=5, word_timestamps=True
+    )
+    return list(segments)
+
+
 def get_video_transcript_with_whisper(video_path: Path, model_size: str = "base") -> str:
     """
     Get transcript using faster-whisper (CTranslate2). Returns same format as AssemblyAI for AI analysis.
     Also caches word-like data for subtitle generation (word-level when available, else segment-level).
+    Falls back to CPU if CUDA is selected but libs (e.g. libcublas.so.12) are missing in the environment.
     """
-    from faster_whisper import WhisperModel
-
     device, compute_type = _faster_whisper_device_and_compute()
     logger.info(
         f"Transcribing with faster-whisper model={model_size} (device={device}, compute_type={compute_type})"
     )
 
-    model = WhisperModel(model_size, device=device, compute_type=compute_type)
-    segments, info = model.transcribe(
-        str(video_path), beam_size=5, word_timestamps=True
+    try:
+        segments = _run_faster_whisper_transcribe(
+            video_path, model_size, device, compute_type
+        )
+    except RuntimeError as e:
+        err_msg = str(e).lower()
+        if "cuda" in err_msg or "cublas" in err_msg or "cannot be loaded" in err_msg:
+            logger.warning(
+                f"faster-whisper CUDA failed ({e}), falling back to CPU"
+            )
+            device, compute_type = "cpu", "int8"
+            segments = _run_faster_whisper_transcribe(
+                video_path, model_size, device, compute_type
+            )
+        else:
+            raise
+
+    logger.info(
+        f"faster-whisper using device={device} compute_type={compute_type}, {len(segments)} segments"
     )
-    segments = list(segments)
 
     # Format for AI analysis: [MM:SS - MM:SS] text per segment
     formatted_lines = []
