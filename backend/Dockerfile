@@ -1,7 +1,14 @@
 # Use jrottenberg ffmpeg image with NVENC for a single GPU/CPU Dockerfile.
 # This base image includes ffmpeg with NVENC as well as libx264, so it works
 # for both GPU (h264_nvenc) and CPU (libx264) encoding from the same image.
+# We copy CUDA 12 runtime libs (e.g. libcublas.so.12) from the official image
+# so faster-whisper/CTranslate2 can use the GPU; the jrottenberg image may
+# ship a different CUDA version or minimal libs for ffmpeg only.
+ARG CUDA_VERSION=12.6.0
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu22.04 AS cuda-runtime
 FROM jrottenberg/ffmpeg:8-nvidia
+COPY --from=cuda-runtime /usr/local/cuda/lib64 /opt/cuda12/lib64
+ENV LD_LIBRARY_PATH=/opt/cuda12/lib64:${LD_LIBRARY_PATH}
 
 # Install system dependencies including Python and basic libs required by OpenCV/MoviePy.
 RUN apt-get update && apt-get install -y \
