@@ -73,10 +73,53 @@ else
     DOCKER_COMPOSE="docker-compose"
 fi
 
+# Auto-detect GPU: create docker-compose.override.yml when NVIDIA GPU is available
+# Docker Compose automatically merges docker-compose.override.yml when present
+# Use USE_GPU=true or USE_GPU=false in .env to override auto-detection
+use_gpu=false
+if [ "${USE_GPU:-auto}" = "true" ]; then
+    use_gpu=true
+    echo -e "${GREEN}Using GPU encoding (USE_GPU=true in .env)${NC}"
+elif [ "${USE_GPU:-auto}" != "false" ] && command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null 2>&1; then
+    use_gpu=true
+    echo -e "${GREEN}NVIDIA GPU detected - using hardware-accelerated encoding (NVENC)${NC}"
+fi
+
+if [ "$use_gpu" = "true" ]; then
+    cat > docker-compose.override.yml << 'GPUOVERRIDE'
+# Auto-generated GPU override (nvidia-container-toolkit required)
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.gpu
+    environment:
+      - USE_GPU_ENCODING=true
+      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-false}
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.gpu
+    environment:
+      - USE_GPU_ENCODING=true
+      - FORCE_CPU_ENCODING=${FORCE_CPU_ENCODING:-false}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+GPUOVERRIDE
+else
+    rm -f docker-compose.override.yml
+fi
+
 echo -e "${GREEN}Starting SupoClip...${NC}"
 echo ""
 
-# Build and start containers
+# Build and start containers (Compose auto-loads docker-compose.override.yml when present)
 echo "Building and starting Docker containers..."
 echo "(This may take a few minutes on the first run)"
 echo ""

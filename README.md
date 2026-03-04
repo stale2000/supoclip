@@ -88,8 +88,12 @@ BETTER_AUTH_SECRET=change_this_in_production
 ### 2. Start the Services
 
 ```bash
-docker-compose up -d
+./start.sh
+# or
+docker compose up -d --build
 ```
+
+`./start.sh` auto-detects NVIDIA GPU and enables hardware-accelerated encoding when available. Set `USE_GPU=true` or `USE_GPU=false` in `.env` to override.
 
 This starts:
 - **Frontend**: http://localhost:3000
@@ -137,7 +141,7 @@ Open http://localhost:3000 in your browser, create an account, and start clippin
 
 **Clip creation is slow:**
 - CPU encoding preset is "veryfast" for speed
-- GPU encoding: set `USE_GPU_ENCODING=true` in `.env` when using an NVIDIA GPU. You must also expose the GPU to the worker container (e.g. add `deploy.resources.reservations.devices: - driver: nvidia` under the worker service and use nvidia-container-toolkit)
+- GPU encoding: run `./start.sh` — it auto-detects NVIDIA GPU and enables NVENC. Requires [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). Or set `USE_GPU=true` in `.env` to force
 
 **Frontend shows database errors:**
 - Wait for PostgreSQL to fully initialize (check logs)
