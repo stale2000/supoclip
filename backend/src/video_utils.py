@@ -53,24 +53,40 @@ def get_encoding_status() -> Dict[str, Any]:
 
 
 def _is_nvenc_available() -> bool:
-    """Check if ffmpeg has h264_nvenc (NVENC) support. Cached at module load."""
+    """Check if ffmpeg has h264_nvenc and GPU is usable. Cached at module load."""
     global _nvenc_available
     if _nvenc_available is not None:
         return _nvenc_available
     try:
         import subprocess
+        # First check encoder exists
         result = subprocess.run(
             ["ffmpeg", "-encoders"],
             capture_output=True,
             text=True,
             timeout=5,
         )
-        # Encoder list can appear on stdout or stderr depending on ffmpeg version
         output = (result.stdout or "") + (result.stderr or "")
-        _nvenc_available = "h264_nvenc" in output
+        if "h264_nvenc" not in output:
+            if config.use_gpu_encoding:
+                logger.warning(
+                    "USE_GPU_ENCODING=true but ffmpeg has no h264_nvenc; falling back to CPU encoding"
+                )
+            _nvenc_available = False
+            return False
+        # Verify GPU is actually usable (encoder exists but may fail without GPU device)
+        test = subprocess.run(
+            [
+                "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=black:s=2x2:d=0.1",
+                "-c:v", "h264_nvenc", "-f", "null", "-"
+            ],
+            capture_output=True,
+            timeout=10,
+        )
+        _nvenc_available = test.returncode == 0
         if not _nvenc_available and config.use_gpu_encoding:
             logger.warning(
-                "USE_GPU_ENCODING=true but ffmpeg has no h264_nvenc; falling back to CPU encoding"
+                "USE_GPU_ENCODING=true but NVENC not usable (no GPU?); falling back to CPU encoding"
             )
         return _nvenc_available
     except Exception as e:

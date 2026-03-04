@@ -18,12 +18,11 @@ Run SupoClip with Docker in just one command!
 Set `USE_GPU=true` or `USE_GPU=false` in `.env`, then:
 
 ```bash
-./up up -d --build
+docker compose up -d --build
 ```
 
-(PowerShell: `.\up.ps1 up -d --build`)
-
 That's it! Docker will build images and start all services (frontend, backend, worker, Postgres, Redis).
+CPU-only: `docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build`
 
 ## First Time Setup
 
@@ -49,7 +48,7 @@ LLM=openai:gpt-4
 ### 2. Start SupoClip
 
 ```bash
-./up up -d --build
+docker compose up -d --build
 ```
 
 ### 3. Access the Application
@@ -62,16 +61,16 @@ LLM=openai:gpt-4
 
 ```bash
 # Start (reads USE_GPU from .env)
-./up up -d --build
+docker compose up -d --build
 
 # View logs
-./up logs -f
+docker compose logs -f
 
 # Stop
-./up down
+docker compose down
 
-# Or run docker compose directly (CPU only)
-docker compose up -d --build
+# CPU-only (no nvidia-container-toolkit)
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
 ```
 
 ## Environment Configuration
