@@ -1,5 +1,5 @@
 # GPU Dockerfile: uses ffmpeg with NVENC for hardware-accelerated video encoding
-# Auto-used by start.sh when NVIDIA GPU is detected, or set USE_GPU=true in .env
+# Use with: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 # Stage 1: Get ffmpeg with NVENC support (jrottenberg has nvidia variant)
 FROM jrottenberg/ffmpeg:8-nvidia AS ffmpeg-nvenc

@@ -13,17 +13,21 @@ Run SupoClip with Docker in just one command!
       - [Anthropic API Key](https://console.anthropic.com/)
       - [Ollama](https://ollama.com/) (local/self-hosted, no API key required for local)
 
-## Quick Start (Single Command)
+## Quick Start
 
 ```bash
-./start.sh
+docker compose up -d --build
 ```
 
-That's it! The script will:
-- Check prerequisites
-- Build Docker images
-- Start all services
+That's it! Docker will:
+- Build images
+- Start all services (frontend, backend, worker, Postgres, Redis)
 - Show you where to access the app
+
+For GPU (NVIDIA + nvidia-container-toolkit):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
 
 ## First Time Setup
 
@@ -49,7 +53,7 @@ LLM=openai:gpt-4
 ### 2. Start SupoClip
 
 ```bash
-./start.sh
+docker compose up -d --build
 ```
 
 ### 3. Access the Application
@@ -58,22 +62,23 @@ LLM=openai:gpt-4
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
 
-## Manual Docker Commands
-
-If you prefer to use Docker commands directly:
+## Docker Commands
 
 ```bash
-# Start all services
-docker-compose up -d --build
+# Start all services (CPU)
+docker compose up -d --build
+
+# Start with GPU
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Rebuild after code changes
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## Environment Configuration
@@ -157,31 +162,31 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 
 Reset the database:
 ```bash
-docker-compose down -v  # WARNING: This deletes all data!
-docker-compose up -d
+docker compose down -v  # WARNING: This deletes all data!
+docker compose up -d --build
 ```
 
 ## Architecture
 
-SupoClip runs 4 Docker containers:
+SupoClip runs 5 Docker containers:
 
 1. **Frontend** (Next.js 15) - Port 3000
 2. **Backend** (FastAPI + Python) - Port 8000
-3. **PostgreSQL** - Port 5432
-4. **Redis** - Port 6379
+3. **Worker** (ARQ video processing) - no exposed port
+4. **PostgreSQL** - Port 5432
+5. **Redis** - Port 6379
 
 All services are connected via a Docker network and start automatically with proper health checks.
 
-## What Happens When You Run `./start.sh`?
+## What Happens When You Run `docker compose up -d --build`?
 
-1. Checks if `.env` file exists with required API keys
-2. Verifies Docker is running
-3. Builds Docker images (first time: ~5-10 minutes)
-4. Starts PostgreSQL and waits for it to be healthy
-5. Starts Redis cache
-6. Starts backend API server
-7. Starts frontend web server
-8. Displays URLs for accessing the application
+1. Builds Docker images (first time: ~5-10 minutes)
+2. Starts PostgreSQL and waits for it to be healthy
+3. Starts Redis cache
+4. Starts backend API server
+5. Starts worker for video processing
+6. Starts frontend web server
+7. All services are available at the URLs above
 
 ## Production Deployment
 
@@ -203,6 +208,6 @@ For production use:
 
 ## Getting Help
 
-- Check logs: `docker-compose logs -f`
+- Check logs: `docker compose logs -f`
 - View API documentation: http://localhost:8000/docs
 - Report issues: Create a GitHub issue with logs and error messages
