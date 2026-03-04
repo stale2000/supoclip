@@ -114,6 +114,7 @@ services:
 GPUOVERRIDE
 else
     rm -f docker-compose.override.yml
+    echo -e "${YELLOW}Using CPU encoding. Set USE_GPU=true in .env to force GPU.${NC}"
 fi
 
 echo -e "${GREEN}Starting SupoClip...${NC}"
